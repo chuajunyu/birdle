@@ -23,6 +23,7 @@ const xcLink = $("#xc-link") as HTMLAnchorElement;
 const nextBtn = $("#next-btn") as HTMLButtonElement;
 const streakEl = $("#streak") as HTMLSpanElement;
 const bestEl = $("#best") as HTMLSpanElement;
+const streakMsgEl = $("#streak-msg") as HTMLParagraphElement;
 const loadingEl = $("#loading") as HTMLDivElement;
 const gameEl = $("#game") as HTMLDivElement;
 const errorEl = $("#error") as HTMLDivElement;
@@ -33,9 +34,30 @@ function ensureProtocol(url: string): string {
   return url.startsWith("//") ? `https:${url}` : url;
 }
 
+const STREAK_MESSAGES: Record<number, string> = {
+  2: "2 in a row!",
+  3: "On a roll!",
+  4: "Keep it up!",
+  5: "Unstoppable!",
+  7: "Bird expert!",
+  10: "Incredible!",
+};
+
+function getStreakMessage(streak: number): string {
+  if (streak < 2) return "";
+  const keys = Object.keys(STREAK_MESSAGES)
+    .map(Number)
+    .filter((k) => k <= streak)
+    .sort((a, b) => b - a);
+  return keys.length ? STREAK_MESSAGES[keys[0]] : "";
+}
+
 function updateScore() {
   streakEl.textContent = String(state.streak);
   bestEl.textContent = String(state.best);
+  const msg = getStreakMessage(state.streak);
+  streakMsgEl.textContent = msg;
+  streakMsgEl.classList.toggle("hidden", !msg);
 }
 
 function setPlayIcon(playing: boolean) {

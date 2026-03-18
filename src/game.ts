@@ -8,6 +8,7 @@ export const SPECIES: Species[] = [
   { gen: "Acridotheres", sp: "javanicus", en: "Javan Myna" },
   { gen: "Geopelia", sp: "striata", en: "Zebra Dove" },
   { gen: "Columba", sp: "livia", en: "Rock Dove" },
+  { gen: "Corvus", sp: "splendens", en: "House Crow"}
 ];
 
 function speciesKey(s: Species): string {

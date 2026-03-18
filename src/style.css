@@ -51,10 +51,48 @@ header h1 {
   margin-top: 0.25rem;
 }
 
-.score {
-  margin-top: 0.75rem;
-  font-size: 1.1rem;
+.score-row {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.score-streak {
+  background: rgba(210, 43, 43, 0.15);
+  color: #c92a2a;
+}
+
+.score-streak .score-icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.score-best {
+  background: rgba(45, 106, 79, 0.15);
+  color: var(--accent);
+}
+
+.score-best .score-icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.streak-msg {
+  margin-top: 0.5rem;
+  font-size: 1rem;
   font-weight: 600;
+  color: var(--correct);
 }
 
 .hidden {
