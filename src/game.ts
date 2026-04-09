@@ -7,7 +7,10 @@ export const SPECIES: Species[] = [
   { gen: "Pycnonotus", sp: "goiavier", en: "Yellow-vented Bulbul" },
   { gen: "Geopelia", sp: "striata", en: "Zebra Dove" },
   { gen: "Columba", sp: "livia", en: "Rock Dove" },
-  { gen: "Corvus", sp: "splendens", en: "House Crow"}
+  { gen: "Corvus", sp: "splendens", en: "House Crow"},
+  { gen: "Garrulax", sp: "leucolophus", en: "White-crested Laughingthrush"},
+  {gen: "Caprimulgus", sp: "macrurus", en: "Large-tailed Nightjar" }
+
 ];
 
 function speciesKey(s: Species): string {
