@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Birdle</title>
     <meta property="og:title" content="Birdle - Guess the bird by its song" />
-    <meta property="og:description" content="Listen to bird songs from Singapore and test your bird ID skills." />
+    <!-- Phase 1: static social metadata. Personalized challenge previews require a dynamic OG endpoint (Phase 2). -->
+    <meta property="og:description" content="Listen to bird songs, build a streak, and challenge friends to beat your Birdle high score." />
     <meta property="og:url" content="https://guessbirdbysong.netlify.app/" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="Birdle - Guess the bird by its song" />
-    <meta name="twitter:description" content="Listen to bird songs from Singapore and test your bird ID skills." />
+    <meta name="twitter:description" content="Listen to bird songs, build a streak, and challenge friends to beat your Birdle high score." />
   </head>
   <body>
     <div id="app">
@@ -18,16 +19,14 @@
         <p class="tagline">Guess the bird by its song</p>
         <div class="score-row">
           <div class="score-item score-streak">
-            <span class="score-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 23c0 0 8-4 8-12 0-4-2-6-2-6s-1 4-4 4-4-4-4-4-2 2-2 6c0 8 8 12 8 12z"/></svg>
-            </span>
-            <span class="score-value"><span id="streak">0</span></span>
+            <span class="score-emoji" aria-hidden="true">🔥</span>
+            <span class="score-label">Streak</span>
+            <span class="score-value" id="streak">0</span>
           </div>
           <div class="score-item score-best">
-            <span class="score-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
-            </span>
-            <span class="score-value"><span id="best">0</span></span>
+            <span class="score-emoji" aria-hidden="true">🏆</span>
+            <span class="score-label">Best</span>
+            <span class="score-value" id="best">0</span>
           </div>
         </div>
         <p id="streak-msg" class="streak-msg hidden"></p>
@@ -37,6 +36,10 @@
         <div id="loading" class="loading">Loading bird songs...</div>
 
         <div id="game" class="game hidden">
+          <div id="challenge-banner" class="challenge-banner hidden" role="status" aria-live="polite">
+            <p id="challenge-banner-text"></p>
+          </div>
+
           <div class="player">
             <button
               type="button"
@@ -75,6 +78,24 @@
             </div>
             <a id="xc-link" target="_blank" rel="noopener noreferrer">View on xeno-canto</a>
             <button id="next-btn" class="next-btn">Next Round</button>
+          </div>
+
+          <div id="highscore-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="highscore-title">
+            <div class="modal-card">
+              <h2 id="highscore-title">New high score!</h2>
+              <p id="highscore-subtitle" class="modal-subtitle"></p>
+              <label class="field-label" for="share-name">Your name (optional)</label>
+              <input id="share-name" class="modal-input" type="text" maxlength="40" placeholder="A birder" />
+              <label class="field-label" for="share-link">Shareable link</label>
+              <input id="share-link" class="modal-input" type="text" readonly />
+              <p id="share-preview" class="share-preview"></p>
+              <div class="modal-actions">
+                <button id="copy-share-btn" type="button" class="next-btn">Copy Link</button>
+                <button id="native-share-btn" type="button" class="next-btn">Share</button>
+                <button id="close-highscore-btn" type="button" class="next-btn modal-close">Close</button>
+              </div>
+              <p id="share-status" class="share-status hidden" role="status" aria-live="polite"></p>
+            </div>
           </div>
         </div>
 

@@ -27,7 +27,10 @@ const LS_KEY = "birdle-best";
 
 function loadBest(): number {
   const val = localStorage.getItem(LS_KEY);
-  return val ? parseInt(val, 10) : 0;
+  if (!val) return 0;
+  const parsed = Number.parseInt(val, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return 0;
+  return parsed;
 }
 
 function saveBest(best: number): void {

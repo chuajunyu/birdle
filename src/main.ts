@@ -30,8 +30,23 @@ const streakMsgEl = $("#streak-msg") as HTMLParagraphElement;
 const loadingEl = $("#loading") as HTMLDivElement;
 const gameEl = $("#game") as HTMLDivElement;
 const errorEl = $("#error") as HTMLDivElement;
+const challengeBannerEl = $("#challenge-banner") as HTMLDivElement;
+const challengeBannerTextEl = $("#challenge-banner-text") as HTMLParagraphElement;
+const highscoreModalEl = $("#highscore-modal") as HTMLDivElement;
+const highscoreSubtitleEl = $("#highscore-subtitle") as HTMLParagraphElement;
+const shareNameInput = $("#share-name") as HTMLInputElement;
+const shareLinkInput = $("#share-link") as HTMLInputElement;
+const sharePreviewEl = $("#share-preview") as HTMLParagraphElement;
+const shareStatusEl = $("#share-status") as HTMLParagraphElement;
+const copyShareBtn = $("#copy-share-btn") as HTMLButtonElement;
+const nativeShareBtn = $("#native-share-btn") as HTMLButtonElement;
+const closeHighscoreBtn = $("#close-highscore-btn") as HTMLButtonElement;
 
 const state = createGameState();
+const SHARE_NAME_KEY = "birdle-share-name";
+const DEFAULT_SHARE_NAME = "a birder";
+let activeHighScore: number | null = null;
+let pendingRunHighScore: number | null = null;
 
 function formatClock(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -161,8 +176,17 @@ function togglePlayback() {
   }
 }
 
-function ensureProtocol(url: string): string {
-  return url.startsWith("//") ? `https:${url}` : url;
+function ensureSafeExternalUrl(url: string): string {
+  const normalized = url.startsWith("//") ? `https:${url}` : url;
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      return parsed.toString();
+    }
+  } catch {
+    // Fall through to safe fallback.
+  }
+  return "about:blank";
 }
 
 const STREAK_MESSAGES: Record<number, string> = {
@@ -181,6 +205,66 @@ function getStreakMessage(streak: number): string {
     .filter((k) => k <= streak)
     .sort((a, b) => b - a);
   return keys.length ? STREAK_MESSAGES[keys[0]] : "";
+}
+
+function getShareName(): string {
+  const fromInput = shareNameInput.value.trim();
+  if (fromInput) return fromInput;
+  const saved = localStorage.getItem(SHARE_NAME_KEY)?.trim() ?? "";
+  return saved || DEFAULT_SHARE_NAME;
+}
+
+function buildShareText(name: string, score: number): string {
+  return `Can you beat ${name}'s high score of ${score}?`;
+}
+
+function buildShareUrl(name: string, score: number): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set("challengeName", name);
+  url.searchParams.set("challengeScore", String(score));
+  return url.toString();
+}
+
+function setShareStatus(message: string, isError = false) {
+  shareStatusEl.textContent = message;
+  shareStatusEl.classList.remove("hidden");
+  shareStatusEl.classList.toggle("share-status-error", isError);
+}
+
+function refreshShareFields() {
+  if (activeHighScore === null) return;
+  const name = getShareName();
+  const url = buildShareUrl(name, activeHighScore);
+  shareLinkInput.value = url;
+  sharePreviewEl.textContent = buildShareText(name, activeHighScore);
+}
+
+function closeHighScoreModal() {
+  highscoreModalEl.classList.add("hidden");
+  activeHighScore = null;
+  shareStatusEl.classList.add("hidden");
+}
+
+function showHighScoreModal(score: number) {
+  activeHighScore = score;
+  highscoreSubtitleEl.textContent = `Congratulations, you set a new best of ${score}!`;
+  shareNameInput.value = localStorage.getItem(SHARE_NAME_KEY)?.trim() ?? "";
+  shareStatusEl.classList.add("hidden");
+  refreshShareFields();
+  highscoreModalEl.classList.remove("hidden");
+  shareNameInput.focus();
+}
+
+function renderChallengeBannerFromLink() {
+  const params = new URLSearchParams(window.location.search);
+  const rawName = (params.get("challengeName") ?? "").trim();
+  const rawScore = Number.parseInt(params.get("challengeScore") ?? "", 10);
+  const safeName = rawName || DEFAULT_SHARE_NAME;
+  const safeScore = Number.isFinite(rawScore) && rawScore > 0 ? rawScore : null;
+  if (!safeScore) return;
+  // Phase 1 keeps social metadata static. Query params personalize only in-app challenge text.
+  challengeBannerTextEl.textContent = `Challenge: Can you beat ${safeName}'s high score of ${safeScore}?`;
+  challengeBannerEl.classList.remove("hidden");
 }
 
 function updateScore() {
@@ -221,9 +305,16 @@ function startRound() {
 function handleGuess(guessEn: string) {
   if (state.answered) return;
 
+  const prevBest = state.best;
   const isCorrect = submitGuess(state, guessEn);
   const correct = getCorrectSpecies(state.current!);
   updateScore();
+  if (isCorrect && state.best > prevBest) {
+    pendingRunHighScore = state.best;
+  } else if (!isCorrect && pendingRunHighScore !== null) {
+    showHighScoreModal(pendingRunHighScore);
+    pendingRunHighScore = null;
+  }
 
   const buttons = choicesEl.querySelectorAll<HTMLButtonElement>(".choice-btn");
   for (const btn of buttons) {
@@ -244,8 +335,10 @@ function handleGuess(guessEn: string) {
   const locParts = [rec.cnt, rec.loc].filter(Boolean);
   locationEl.textContent = locParts.length ? `Recorded in ${locParts.join(", ")}` : "";
   locationEl.classList.toggle("hidden", !locParts.length);
-  sonoImg.src = ensureProtocol(rec.sono.med);
-  xcLink.href = ensureProtocol(rec.url);
+  const safeSonoUrl = ensureSafeExternalUrl(rec.sono.med);
+  const safeXcUrl = ensureSafeExternalUrl(rec.url);
+  sonoImg.src = safeSonoUrl === "about:blank" ? "" : safeSonoUrl;
+  xcLink.href = safeXcUrl;
 
   feedbackEl.classList.remove("hidden");
 }
@@ -284,12 +377,63 @@ audio.addEventListener("ended", () => {
 });
 
 nextBtn.addEventListener("click", () => startRound());
+closeHighscoreBtn.addEventListener("click", () => closeHighScoreModal());
+highscoreModalEl.addEventListener("click", (e) => {
+  if (e.target === highscoreModalEl) closeHighScoreModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !highscoreModalEl.classList.contains("hidden")) {
+    closeHighScoreModal();
+  }
+});
+shareNameInput.addEventListener("input", () => {
+  const trimmed = shareNameInput.value.trim();
+  if (trimmed) {
+    localStorage.setItem(SHARE_NAME_KEY, trimmed);
+  } else {
+    localStorage.removeItem(SHARE_NAME_KEY);
+  }
+  refreshShareFields();
+});
+copyShareBtn.addEventListener("click", async () => {
+  if (activeHighScore === null) return;
+  refreshShareFields();
+  try {
+    await navigator.clipboard.writeText(shareLinkInput.value);
+    setShareStatus("Link copied.");
+  } catch {
+    shareLinkInput.select();
+    setShareStatus("Could not copy automatically. The link is selected for manual copy.", true);
+  }
+});
+nativeShareBtn.addEventListener("click", async () => {
+  if (activeHighScore === null) return;
+  refreshShareFields();
+  if (!("share" in navigator)) {
+    setShareStatus("Native share is not supported on this device.", true);
+    return;
+  }
+  try {
+    await navigator.share({
+      title: "Birdle challenge",
+      text: sharePreviewEl.textContent ?? "",
+      url: shareLinkInput.value,
+    });
+    setShareStatus("Shared successfully.");
+  } catch {
+    setShareStatus("Share was canceled or failed.", true);
+  }
+});
+if (!("share" in navigator)) {
+  nativeShareBtn.classList.add("hidden");
+}
 
 async function init() {
   try {
     await loadRecordings(state);
     loadingEl.classList.add("hidden");
     gameEl.classList.remove("hidden");
+    renderChallengeBannerFromLink();
     updateScore();
     startRound();
   } catch (err) {
