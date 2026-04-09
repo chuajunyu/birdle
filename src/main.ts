@@ -201,6 +201,15 @@ function ensureSafeExternalUrl(url: string): string {
   return "about:blank";
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 const STREAK_MESSAGES: Record<number, string> = {
   2: "2 in a row!",
   3: "On a roll!",
@@ -305,7 +314,17 @@ function startRound() {
   for (const s of choices) {
     const btn = document.createElement("button");
     btn.className = "choice-btn";
-    btn.textContent = s.en;
+    btn.dataset.en = s.en;
+
+    const common = document.createElement("span");
+    common.className = "choice-common";
+    common.textContent = s.en;
+
+    const scientific = document.createElement("span");
+    scientific.className = "choice-scientific";
+    scientific.textContent = `${s.gen} ${s.sp}`;
+
+    btn.append(common, scientific);
     btn.addEventListener("click", () => handleGuess(s.en));
     choicesEl.appendChild(btn);
   }
@@ -331,16 +350,19 @@ function handleGuess(guessEn: string) {
   const buttons = choicesEl.querySelectorAll<HTMLButtonElement>(".choice-btn");
   for (const btn of buttons) {
     btn.disabled = true;
-    if (btn.textContent === correct.en) {
+    const optionEn = btn.dataset.en ?? "";
+    if (optionEn === correct.en) {
       btn.classList.add("correct");
-    } else if (btn.textContent === guessEn && !isCorrect) {
+    } else if (optionEn === guessEn && !isCorrect) {
       btn.classList.add("wrong");
     }
   }
 
-  feedbackText.textContent = isCorrect
-    ? `Correct! That's the ${correct.en}.`
-    : `Wrong! That was the ${correct.en}.`;
+  const commonName = escapeHtml(correct.en);
+  const scientificName = `<em>${escapeHtml(correct.gen)} ${escapeHtml(correct.sp)}</em>`;
+  feedbackText.innerHTML = isCorrect
+    ? `Correct! That's the ${commonName} (${scientificName}).`
+    : `Wrong! That was the ${commonName} (${scientificName}).`;
   feedbackText.className = isCorrect ? "text-correct" : "text-wrong";
 
   const rec = state.current!;
