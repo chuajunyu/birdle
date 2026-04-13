@@ -20,9 +20,12 @@ const iconPause = $(".icon-pause") as Element;
 const choicesEl = $("#choices") as HTMLDivElement;
 const feedbackEl = $("#feedback") as HTMLDivElement;
 const feedbackText = $("#feedback-text") as HTMLParagraphElement;
+const soundTypeSummaryEl = $("#sound-type-summary") as HTMLParagraphElement;
 const locationEl = $("#location") as HTMLParagraphElement;
+const recordingDatetimeSummaryEl = $("#recording-datetime-summary") as HTMLParagraphElement;
+const sonoContainerEl = $("#sono-container") as HTMLDivElement;
 const sonoImg = $("#sono-img") as HTMLImageElement;
-const xcLink = $("#xc-link") as HTMLAnchorElement;
+const recordingCreditEl = $("#recording-credit") as HTMLParagraphElement;
 const nextBtn = $("#next-btn") as HTMLButtonElement;
 const streakEl = $("#streak") as HTMLSpanElement;
 const bestEl = $("#best") as HTMLSpanElement;
@@ -210,6 +213,45 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#39;");
 }
 
+function toTitleCase(value: string): string {
+  return value.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function normalizeSingleMeta(rawValue: string | undefined): string | null {
+  const value = (rawValue ?? "").trim().replace(/\s+/g, " ");
+  if (!value) return null;
+  const lowered = value.toLowerCase();
+  if (
+    lowered === "not specified" ||
+    lowered === "unknown" ||
+    lowered === "unspecified" ||
+    lowered === "n/a" ||
+    lowered === "na"
+  ) {
+    return null;
+  }
+  return toTitleCase(value);
+}
+
+function buildRecordingDatetimeSummary(rec: Recording): string | null {
+  const date = normalizeSingleMeta(rec.date);
+  const time = normalizeSingleMeta(rec.time);
+  if (date && time) return `Recorded on ${date} at ${time}.`;
+  if (date) return `Recorded on ${date}.`;
+  if (time) return `Recorded at ${time}.`;
+  return null;
+}
+
+function buildSoundSummary(rawType: string): string | null {
+  const types = rawType
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => toTitleCase(t.toLowerCase()))
+    .join(", ");
+  return types ? `Sound type: ${types}` : null;
+}
+
 const STREAK_MESSAGES: Record<number, string> = {
   2: "2 in a row!",
   3: "On a roll!",
@@ -369,10 +411,34 @@ function handleGuess(guessEn: string) {
   const locParts = [rec.cnt, rec.loc].filter(Boolean);
   locationEl.textContent = locParts.length ? `Recorded in ${locParts.join(", ")}` : "";
   locationEl.classList.toggle("hidden", !locParts.length);
-  const safeSonoUrl = ensureSafeExternalUrl(rec.sono.med);
+
+  const soundSummary = buildSoundSummary(rec.type);
+  soundTypeSummaryEl.textContent = soundSummary ?? "";
+  soundTypeSummaryEl.classList.toggle("hidden", !soundSummary);
+
+  const datetimeSummary = buildRecordingDatetimeSummary(rec);
+  recordingDatetimeSummaryEl.textContent = datetimeSummary ?? "";
+  recordingDatetimeSummaryEl.classList.toggle("hidden", !datetimeSummary);
+
+  const safeSonoUrl = ensureSafeExternalUrl(rec.sono.large || rec.sono.med);
+  if (safeSonoUrl !== "about:blank") {
+    sonoImg.src = safeSonoUrl;
+    sonoContainerEl.classList.remove("hidden");
+  } else {
+    sonoImg.src = "";
+    sonoContainerEl.classList.add("hidden");
+  }
+
   const safeXcUrl = ensureSafeExternalUrl(rec.url);
-  sonoImg.src = safeSonoUrl === "about:blank" ? "" : safeSonoUrl;
-  xcLink.href = safeXcUrl;
+  const safeLicUrl = ensureSafeExternalUrl(rec.lic ?? "");
+  const recordist = normalizeSingleMeta(rec.rec) ?? "unknown recordist";
+  const sourceLink = `<a href="${safeXcUrl}" target="_blank" rel="noopener noreferrer">Xeno-canto</a>`;
+  const licenseLink =
+    safeLicUrl !== "about:blank"
+      ? ` · <a href="${safeLicUrl}" target="_blank" rel="noopener noreferrer">License</a>`
+      : "";
+  recordingCreditEl.innerHTML = `Audio via ${sourceLink}, submitted by ${escapeHtml(recordist)}${licenseLink}.`;
+  recordingCreditEl.classList.remove("hidden");
 
   feedbackEl.classList.remove("hidden");
 }

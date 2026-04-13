@@ -10,6 +10,25 @@ export interface Recording {
   length: string;
   url: string;
   file: string;
+  rec?: string;
+  lat?: string;
+  lng?: string;
+  alt?: string;
+  date?: string;
+  time?: string;
+  sex?: string;
+  stage?: string;
+  method?: string;
+  also?: string;
+  rmk?: string;
+  lic?: string;
+  ssp?: string;
+  group?: string;
+  mic?: string;
+  smp?: string;
+  dvc?: string;
+  "bird-seen"?: string;
+  "playback-used"?: string;
   sono: {
     small: string;
     med: string;
