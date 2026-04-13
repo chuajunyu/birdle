@@ -444,7 +444,7 @@ function handleGuess(guessEn: string) {
   const sourceLink = `<a href="${safeXcUrl}" target="_blank" rel="noopener noreferrer">Xeno-canto</a>`;
   const licenseLink =
     safeLicUrl !== "about:blank"
-      ? ` · <a href="${safeLicUrl}" target="_blank" rel="noopener noreferrer">Source Recording License</a>`
+      ? ` · <a href="${safeLicUrl}" target="_blank" rel="noopener noreferrer">Source recording license</a>`
       : "";
   recordingCreditEl.innerHTML = `Audio via ${sourceLink}, submitted by ${escapeHtml(recordist)}${licenseLink}.`;
   recordingCreditEl.classList.remove("hidden");
