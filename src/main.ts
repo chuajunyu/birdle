@@ -46,7 +46,8 @@ const nativeShareBtn = $("#native-share-btn") as HTMLButtonElement;
 const closeHighscoreBtn = $("#close-highscore-btn") as HTMLButtonElement;
 
 const state = createGameState();
-const SHARE_NAME_KEY = "birdle-share-name";
+const SHARE_NAME_KEY = "birdguessr-share-name";
+const LEGACY_SHARE_NAME_KEY = "birdle-share-name";
 const DEFAULT_SHARE_NAME = "a birder";
 const LOADING_PHRASES = [
   "Teaching the choir to chirp...",
@@ -273,7 +274,11 @@ function getStreakMessage(streak: number): string {
 function getShareName(): string {
   const fromInput = shareNameInput.value.trim();
   if (fromInput) return fromInput;
-  const saved = localStorage.getItem(SHARE_NAME_KEY)?.trim() ?? "";
+  const saved = (
+    localStorage.getItem(SHARE_NAME_KEY) ??
+    localStorage.getItem(LEGACY_SHARE_NAME_KEY) ??
+    ""
+  ).trim();
   return saved || DEFAULT_SHARE_NAME;
 }
 
@@ -311,7 +316,11 @@ function closeHighScoreModal() {
 function showHighScoreModal(score: number) {
   activeHighScore = score;
   highscoreSubtitleEl.textContent = `Congratulations, you set a new best of ${score}!`;
-  shareNameInput.value = localStorage.getItem(SHARE_NAME_KEY)?.trim() ?? "";
+  shareNameInput.value = (
+    localStorage.getItem(SHARE_NAME_KEY) ??
+    localStorage.getItem(LEGACY_SHARE_NAME_KEY) ??
+    ""
+  ).trim();
   shareStatusEl.classList.add("hidden");
   refreshShareFields();
   highscoreModalEl.classList.remove("hidden");
@@ -515,7 +524,7 @@ nativeShareBtn.addEventListener("click", async () => {
   }
   try {
     await navigator.share({
-      title: "Birdle challenge",
+      title: "BirdGuessr challenge",
       text: sharePreviewEl.textContent ?? "",
       url: shareLinkInput.value,
     });

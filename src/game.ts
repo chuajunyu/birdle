@@ -26,10 +26,11 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-const LS_KEY = "birdle-best";
+const LS_KEY = "birdguessr-best";
+const LEGACY_LS_KEY = "birdle-best";
 
 function loadBest(): number {
-  const val = localStorage.getItem(LS_KEY);
+  const val = localStorage.getItem(LS_KEY) ?? localStorage.getItem(LEGACY_LS_KEY);
   if (!val) return 0;
   const parsed = Number.parseInt(val, 10);
   if (!Number.isFinite(parsed) || parsed < 0) return 0;
