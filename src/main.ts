@@ -1,5 +1,6 @@
 import "./style.css";
 import { xcAudioUrl } from "./api";
+import { getBirdImageCredit } from "./speciesMedia";
 import type { Recording, XCRecording } from "./types";
 import {
     createGameState,
@@ -29,6 +30,7 @@ const sonoContainerEl = $("#sono-container") as HTMLDivElement;
 const sonoImg = $("#sono-img") as HTMLImageElement;
 const speciesImageWrapEl = $("#species-image-wrap") as HTMLDivElement;
 const speciesImageEl = $("#species-image") as HTMLImageElement;
+const imageCreditEl = $("#image-credit") as HTMLParagraphElement;
 const speciesMorePhotosEl = $("#species-more-photos") as HTMLParagraphElement;
 const recordingCreditEl = $("#recording-credit") as HTMLParagraphElement;
 const nextBtn = $("#next-btn") as HTMLButtonElement;
@@ -239,6 +241,31 @@ function escapeHtml(value: string): string {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#39;");
+}
+
+function renderImageCredit(correct: { gen: string; sp: string }) {
+    imageCreditEl.textContent = "";
+    imageCreditEl.classList.add("hidden");
+
+    const credit = getBirdImageCredit(correct);
+    if (!credit) return;
+
+    if (credit.sourceUrl) {
+        const safeUrl = ensureSafeExternalUrl(credit.sourceUrl);
+        if (safeUrl !== "about:blank") {
+            const link = document.createElement("a");
+            link.href = safeUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = credit.label;
+            imageCreditEl.append(link);
+            imageCreditEl.classList.remove("hidden");
+            return;
+        }
+    }
+
+    imageCreditEl.textContent = credit.label;
+    imageCreditEl.classList.remove("hidden");
 }
 
 function toTitleCase(value: string): string {
@@ -491,6 +518,7 @@ function handleGuess(guessEn: string) {
     } else {
         speciesImageEl.alt = "";
     }
+    renderImageCredit(correct);
 
     speciesMorePhotosEl.textContent = "";
     speciesMorePhotosEl.classList.add("hidden");

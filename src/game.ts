@@ -85,7 +85,7 @@ export async function loadRecordings(state: GameState): Promise<void> {
     SPECIES.map(async (s) => {
       const [xc, local] = await Promise.all([
         fetchRecordings(s.gen, s.sp),
-        Promise.resolve(getLocalRecordingsForSpecies(s.gen, s.sp, s.en)),
+        getLocalRecordingsForSpecies(s.gen, s.sp, s.en),
       ]);
       return { key: speciesKey(s), pool: { xc, local } };
     }),

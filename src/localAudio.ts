@@ -10,46 +10,44 @@ function fileLabelFromPath(path: string): string {
   return idx >= 0 ? normalized.slice(idx + 1) : normalized;
 }
 
-const localAudioModules = import.meta.glob("/public/audio/local/**/*.wav", {
-  eager: true,
-  import: "default",
-}) as Record<string, string>;
+type LocalAudioManifest = Record<string, string[]>;
+let manifestPromise: Promise<LocalAudioManifest> | null = null;
 
-const localAudioBySpecies = (() => {
-  const bySpecies = new Map<string, Array<{ src: string; label: string }>>();
-  for (const [path, src] of Object.entries(localAudioModules)) {
-    const normalized = path.replaceAll("\\", "/");
-    const parts = normalized.split("/").filter(Boolean);
-    const localIdx = parts.findIndex((p) => p === "local");
-    const speciesKey = localIdx >= 0 ? parts[localIdx + 1] : "";
-    if (!speciesKey) continue;
-    const list = bySpecies.get(speciesKey) ?? [];
-    list.push({ src, label: fileLabelFromPath(normalized) });
-    bySpecies.set(speciesKey, list);
+async function loadLocalAudioManifest(): Promise<LocalAudioManifest> {
+  if (!manifestPromise) {
+    manifestPromise = fetch("/audio/local/manifest.json")
+      .then(async (res) => {
+        if (!res.ok) return {};
+        return (await res.json()) as LocalAudioManifest;
+      })
+      .catch(() => ({}));
   }
-  return bySpecies;
-})();
+  return manifestPromise;
+}
 
 export function getLocalRecordingsForSpecies(
   gen: string,
   sp: string,
   en: string,
-): LocalRecording[] {
+): Promise<LocalRecording[]> {
   const key = speciesFolderKey(gen, sp);
-  const files = localAudioBySpecies.get(key) ?? [];
-  return files.map((f, idx) => ({
-    source: "local",
-    id: `local-${key}-${idx + 1}`,
-    gen,
-    sp,
-    en,
-    src: f.src,
-    label: f.label,
-    length: "",
-  }));
+  return loadLocalAudioManifest().then((manifest) => {
+    const files = manifest[key] ?? [];
+    return files.map((relativePath, idx) => ({
+      source: "local",
+      id: `local-${key}-${idx + 1}`,
+      gen,
+      sp,
+      en,
+      src: `/audio/local/${key}/${relativePath}`,
+      label: fileLabelFromPath(relativePath),
+      length: "",
+    }));
+  });
 }
 
-export function getLocalRecordingCount(gen: string, sp: string): number {
+export async function getLocalRecordingCount(gen: string, sp: string): Promise<number> {
   const key = speciesFolderKey(gen, sp);
-  return (localAudioBySpecies.get(key) ?? []).length;
+  const manifest = await loadLocalAudioManifest();
+  return (manifest[key] ?? []).length;
 }

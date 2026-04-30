@@ -75,7 +75,7 @@ export interface Species {
   gen: string;
   sp: string;
   en: string;
-  /** Same-origin path under `public/` (e.g. `/images/birds/gen-sp.jpg`). */
+  /** Same-origin path under `public/` (e.g. `/images/birds/gen-sp.webp`). */
   imageSrc?: string;
   /** Optional gallery link (e.g. iNaturalist taxon page). */
   morePhotosUrl?: string;
