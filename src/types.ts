@@ -92,4 +92,17 @@ export interface GameState {
   streak: number;
   best: number;
   answered: boolean;
+  achievements: AchievementsStats;
+}
+
+export interface SpeciesAchievement {
+  unlocked: boolean;
+  correctCount: number;
+  attempts: number;
+}
+
+export interface AchievementsStats {
+  totalCorrect: number;
+  totalWrong: number;
+  species: Record<string, SpeciesAchievement>;
 }

@@ -1,7 +1,13 @@
 import { fetchRecordings } from "./api";
 import { getLocalRecordingsForSpecies } from "./localAudio";
 import { defaultBirdImageSrc } from "./speciesMedia";
-import type { GameState, Recording, Species } from "./types";
+import type {
+  AchievementsStats,
+  GameState,
+  Recording,
+  Species,
+  SpeciesAchievement,
+} from "./types";
 
 function bird(
   gen: string,
@@ -55,6 +61,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 const LS_KEY = "birdguessr-best";
 const LEGACY_LS_KEY = "birdle-best";
+const ACHIEVEMENTS_LS_KEY = "birdguessr-achievements";
 const XC_FLOOR = 0.25;
 const LOCAL_SATURATION_COUNT = 6;
 
@@ -70,6 +77,70 @@ function saveBest(best: number): void {
   localStorage.setItem(LS_KEY, String(best));
 }
 
+function createDefaultAchievements(): AchievementsStats {
+  const species: Record<string, SpeciesAchievement> = {};
+  for (const s of SPECIES) {
+    species[speciesKey(s)] = {
+      unlocked: false,
+      correctCount: 0,
+      attempts: 0,
+    };
+  }
+  return {
+    totalCorrect: 0,
+    totalWrong: 0,
+    species,
+  };
+}
+
+function sanitizeNonNegativeInt(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  const rounded = Math.floor(value);
+  return rounded >= 0 ? rounded : 0;
+}
+
+function loadAchievements(): AchievementsStats {
+  const defaults = createDefaultAchievements();
+  const raw = localStorage.getItem(ACHIEVEMENTS_LS_KEY);
+  if (!raw) return defaults;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<AchievementsStats> | null;
+    if (!parsed || typeof parsed !== "object") return defaults;
+
+    const merged: AchievementsStats = {
+      totalCorrect: sanitizeNonNegativeInt(parsed.totalCorrect),
+      totalWrong: sanitizeNonNegativeInt(parsed.totalWrong),
+      species: { ...defaults.species },
+    };
+
+    const parsedSpecies = parsed.species;
+    if (parsedSpecies && typeof parsedSpecies === "object") {
+      for (const s of SPECIES) {
+        const key = speciesKey(s);
+        const stat = (parsedSpecies as Record<string, unknown>)[key];
+        if (!stat || typeof stat !== "object") continue;
+        const maybeUnlocked = (stat as { unlocked?: unknown }).unlocked;
+        const maybeCount = (stat as { correctCount?: unknown }).correctCount;
+        const maybeAttempts = (stat as { attempts?: unknown }).attempts;
+        merged.species[key] = {
+          unlocked: Boolean(maybeUnlocked),
+          correctCount: sanitizeNonNegativeInt(maybeCount),
+          attempts: sanitizeNonNegativeInt(maybeAttempts),
+        };
+      }
+    }
+
+    return merged;
+  } catch {
+    return defaults;
+  }
+}
+
+function saveAchievements(achievements: AchievementsStats): void {
+  localStorage.setItem(ACHIEVEMENTS_LS_KEY, JSON.stringify(achievements));
+}
+
 export function createGameState(): GameState {
   return {
     pool: new Map(),
@@ -77,6 +148,7 @@ export function createGameState(): GameState {
     streak: 0,
     best: loadBest(),
     answered: false,
+    achievements: loadAchievements(),
   };
 }
 
@@ -182,17 +254,31 @@ export function submitGuess(state: GameState, guessEn: string): boolean {
 
   const correct = getCorrectSpecies(state.current);
   const isCorrect = correct.en === guessEn;
+  const speciesKeyForCurrent = speciesKey(correct);
+  const currentSpeciesStats = state.achievements.species[speciesKeyForCurrent] ?? {
+    unlocked: false,
+    correctCount: 0,
+    attempts: 0,
+  };
+  currentSpeciesStats.attempts++;
+  state.achievements.species[speciesKeyForCurrent] = currentSpeciesStats;
 
   if (isCorrect) {
     state.streak++;
+    state.achievements.totalCorrect++;
+    currentSpeciesStats.unlocked = true;
+    currentSpeciesStats.correctCount++;
+    state.achievements.species[speciesKeyForCurrent] = currentSpeciesStats;
     if (state.streak > state.best) {
       state.best = state.streak;
       saveBest(state.best);
     }
   } else {
     state.streak = 0;
+    state.achievements.totalWrong++;
   }
 
+  saveAchievements(state.achievements);
   state.answered = true;
   return isCorrect;
 }

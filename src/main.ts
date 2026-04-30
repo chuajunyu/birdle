@@ -7,6 +7,7 @@ import {
     getCorrectSpecies,
     loadRecordings,
     pickRound,
+    SPECIES,
     submitGuess,
 } from "./game";
 
@@ -40,6 +41,13 @@ const streakMsgEl = $("#streak-msg") as HTMLParagraphElement;
 const loadingEl = $("#loading") as HTMLDivElement;
 const gameEl = $("#game") as HTMLDivElement;
 const errorEl = $("#error") as HTMLDivElement;
+const achievementsEl = $("#achievements") as HTMLDivElement;
+const navGameBtn = $("#nav-game-btn") as HTMLButtonElement;
+const navAchievementsBtn = $("#nav-achievements-btn") as HTMLButtonElement;
+const achTotalCorrectEl = $("#ach-total-correct") as HTMLParagraphElement;
+const achAccuracyEl = $("#ach-accuracy") as HTMLParagraphElement;
+const achUnlockedCountEl = $("#ach-unlocked-count") as HTMLParagraphElement;
+const achievementsGridEl = $("#achievements-grid") as HTMLDivElement;
 const challengeBannerEl = $("#challenge-banner") as HTMLDivElement;
 const challengeBannerTextEl = $(
     "#challenge-banner-text",
@@ -69,6 +77,7 @@ let activeHighScore: number | null = null;
 let pendingRunHighScore: number | null = null;
 let hasUserInteractedWithAudio = false;
 let hasStartedFirstRound = false;
+type ViewName = "game" | "achievements";
 
 function getRandomLoadingPhrase(): string {
     const idx = Math.floor(Math.random() * LOADING_PHRASES.length);
@@ -402,6 +411,93 @@ function updateScore() {
     streakMsgEl.classList.toggle("hidden", !msg);
 }
 
+function setActiveView(view: ViewName) {
+    const onGame = view === "game";
+    gameEl.classList.toggle("hidden", !onGame);
+    achievementsEl.classList.toggle("hidden", onGame);
+    navGameBtn.classList.toggle("is-active", onGame);
+    navAchievementsBtn.classList.toggle("is-active", !onGame);
+    navGameBtn.setAttribute("aria-selected", String(onGame));
+    navAchievementsBtn.setAttribute("aria-selected", String(!onGame));
+}
+
+function formatAccuracy(totalCorrect: number, totalWrong: number): string {
+    const attempts = totalCorrect + totalWrong;
+    if (attempts <= 0) return "-";
+    return `${((totalCorrect / attempts) * 100).toFixed(1)}%`;
+}
+
+function setAccuracyColor(totalCorrect: number, totalWrong: number) {
+    const attempts = totalCorrect + totalWrong;
+    if (attempts <= 0) {
+        achAccuracyEl.style.color = "";
+        return;
+    }
+    const accuracy = totalCorrect / attempts;
+    const hue = Math.round(accuracy * 120);
+    achAccuracyEl.style.color = `hsl(${hue} 75% 42%)`;
+}
+
+function speciesStatsKey(gen: string, sp: string): string {
+    return `${gen} ${sp}`;
+}
+
+function formatBirdAccuracy(correctCount: number, attempts: number): string {
+    if (attempts <= 0) return "-";
+    return `${((correctCount / attempts) * 100).toFixed(0)}%`;
+}
+
+function renderAchievements() {
+    const { achievements } = state;
+    const unlockedCount = SPECIES.reduce((count, species) => {
+        const key = speciesStatsKey(species.gen, species.sp);
+        return count + (achievements.species[key]?.unlocked ? 1 : 0);
+    }, 0);
+
+    achTotalCorrectEl.textContent = String(achievements.totalCorrect);
+    achAccuracyEl.textContent = formatAccuracy(
+        achievements.totalCorrect,
+        achievements.totalWrong,
+    );
+    setAccuracyColor(achievements.totalCorrect, achievements.totalWrong);
+    achUnlockedCountEl.textContent = `${unlockedCount} / ${SPECIES.length}`;
+
+    achievementsGridEl.innerHTML = "";
+    for (const species of SPECIES) {
+        const key = speciesStatsKey(species.gen, species.sp);
+        const speciesStats = achievements.species[key];
+        const unlocked = Boolean(speciesStats?.unlocked);
+        const correctCount = speciesStats?.correctCount ?? 0;
+        const attempts = speciesStats?.attempts ?? 0;
+
+        const card = document.createElement("article");
+        card.className = `achievement-card${unlocked ? "" : " achievement-card--locked"}`;
+
+        const thumbWrap = document.createElement("div");
+        thumbWrap.className = "achievement-thumb-wrap";
+        if (species.imageSrc) {
+            const img = document.createElement("img");
+            img.className = "achievement-thumb";
+            img.src = species.imageSrc;
+            img.alt = unlocked ? `${species.en} thumbnail` : "Locked bird thumbnail";
+            thumbWrap.append(img);
+        }
+
+        const nameEl = document.createElement("p");
+        nameEl.className = "achievement-name";
+        nameEl.textContent = unlocked ? species.en : "???";
+
+        const statsEl = document.createElement("p");
+        statsEl.className = "achievement-card-stats";
+        statsEl.textContent = unlocked
+            ? `Correct ${correctCount} · Attempts ${attempts} · Accuracy ${formatBirdAccuracy(correctCount, attempts)}`
+            : "Correct ? · Attempts ? · Accuracy ?";
+
+        card.append(thumbWrap, nameEl, statsEl);
+        achievementsGridEl.append(card);
+    }
+}
+
 function setPlayIcon(playing: boolean) {
     iconPlay.classList.toggle("hidden", playing);
     iconPause.classList.toggle("hidden", !playing);
@@ -470,6 +566,7 @@ function handleGuess(guessEn: string) {
     const isCorrect = submitGuess(state, guessEn);
     const correct = getCorrectSpecies(state.current!);
     updateScore();
+    renderAchievements();
     if (isCorrect && state.best > prevBest) {
         pendingRunHighScore = state.best;
     } else if (!isCorrect && pendingRunHighScore !== null) {
@@ -624,6 +721,11 @@ nextBtn.addEventListener("click", () => {
     markUserInteractedWithAudio();
     startRound();
 });
+navGameBtn.addEventListener("click", () => setActiveView("game"));
+navAchievementsBtn.addEventListener("click", () => {
+    renderAchievements();
+    setActiveView("achievements");
+});
 closeHighscoreBtn.addEventListener("click", () => closeHighScoreModal());
 highscoreModalEl.addEventListener("click", (e) => {
     if (e.target === highscoreModalEl) closeHighScoreModal();
@@ -683,9 +785,10 @@ async function init() {
         loadingEl.textContent = getRandomLoadingPhrase();
         await loadRecordings(state);
         loadingEl.classList.add("hidden");
-        gameEl.classList.remove("hidden");
+        setActiveView("game");
         renderChallengeBannerFromLink();
         updateScore();
+        renderAchievements();
         startRound();
     } catch (err) {
         loadingEl.classList.add("hidden");

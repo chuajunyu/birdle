@@ -99,6 +99,31 @@ header h1 {
   color: var(--correct);
 }
 
+.view-nav {
+  margin-top: 0.9rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.view-nav-btn {
+  border: 1px solid rgba(45, 106, 79, 0.35);
+  background: var(--card);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.view-nav-btn.is-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
 .hidden {
   display: none !important;
 }
@@ -119,6 +144,90 @@ header h1 {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.achievements {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.achievements-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.achievements-stat-card {
+  border: 1px solid rgba(45, 106, 79, 0.2);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 0.75rem 0.6rem;
+  text-align: center;
+}
+
+.achievements-stat-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+
+.achievements-stat-value {
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.achievement-card {
+  border-radius: 10px;
+  border: 1px solid rgba(45, 106, 79, 0.18);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.achievement-thumb-wrap {
+  aspect-ratio: 1;
+  background: rgba(45, 106, 79, 0.08);
+}
+
+.achievement-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.achievement-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.35rem 0.25rem 0.45rem;
+  color: var(--accent);
+  min-height: 1.6rem;
+}
+
+.achievement-card-stats {
+  font-size: 0.62rem;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--muted);
+  padding: 0 0.25rem 0.45rem;
+  min-height: 2.1rem;
+}
+
+.achievement-card--locked .achievement-thumb {
+  filter: grayscale(1) brightness(0.55);
+}
+
+.achievement-card--locked .achievement-name,
+.achievement-card--locked .achievement-card-stats {
+  color: var(--muted);
 }
 
 .challenge-banner {

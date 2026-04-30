@@ -101,6 +101,7 @@ If a species ends up with **zero XC and zero local** clips, `loadRecordings()` t
 - Render the three choice buttons with reference photos.
 - After a guess: show feedback, the correct species' image, and (XC only) the sonogram, location, recording date/time, and sound-type metadata. Local clips show a short "recorded by Jun Yu and Joshua" credit instead.
 - Update the streak; persist best score to `localStorage` under `birdguessr-best`. On a new high score, open the share modal, which builds a URL with `challengeName` and `challengeScore` query params. Those are read back on a subsequent visit by `renderChallengeBannerFromLink()`.
+- Track Birdopedia progress in `localStorage` under `birdguessr-achievements`: lifetime totals (`totalCorrect`, `totalWrong`) plus per-bird stats (`correctCount`, `attempts`, unlock state). Birdopedia shows global accuracy (`correct / attempts`) and per-bird accuracy (`correctCount / attempts`).
 
 ```mermaid
 flowchart TD
@@ -120,6 +121,23 @@ flowchart TD
   Choices --> Guess[handleGuess]
   Guess --> Score["streak / best in localStorage"]
 ```
+
+---
+
+## Birdopedia
+
+Birdopedia is the collection/progress page (top nav button), backed by localStorage and persisted across sessions.
+
+- Top stats:
+  - Lifetime correct IDs.
+  - Accuracy (`totalCorrect / (totalCorrect + totalWrong)`), shown as a percentage.
+  - Birds unlocked out of 16.
+- 4x4 bird grid:
+  - Locked bird: greyed thumbnail, hidden name (`???`), masked stats.
+  - Unlocked bird: real name + thumbnail after first correct identification.
+  - Per bird stats: `correctCount`, `attempts`, and accuracy (`correctCount / attempts`).
+- Storage key:
+  - `birdguessr-achievements` (JSON payload in `localStorage`).
 
 ---
 
